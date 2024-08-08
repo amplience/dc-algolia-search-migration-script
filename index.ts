@@ -25,7 +25,6 @@ logger.info("Checking for Algolia CLI");
 try {
   await $`algolia --help`;
 } catch (e) {
-  // can we make custom error more tidy in the terminal
   throw new Error(
     "Algolia CLI not installed: https://www.algolia.com/doc/tools/cli/get-started/overview/#install-the-algolia-cli"
   );
@@ -42,12 +41,10 @@ if (
 }
 
 logger.info("Creating Algolia CLI profile for DC Algolia");
-await $`algolia profile add \
-        --name ${DC_ALGOLIA_PROFILE_NAME} \
-        --app-id ${DC_ALGOLIA_INDEX_APP_ID} \
-        --api-key ${DC_ALGOLIA_INDEX_API_KEY}`;
+await $`algolia profile add --name ${DC_ALGOLIA_PROFILE_NAME} --app-id ${DC_ALGOLIA_INDEX_APP_ID} --api-key ${DC_ALGOLIA_INDEX_API_KEY}`;
 
-// Create profile for Amplience Reseller indexes
+logger.info("Creating Algolia CLI profile for Reseller");
+await $`algolia profile add --name ${RESELLER_ALGOLIA_PROFILE_NAME} --app-id ${RESELLER_ALGOLIA_INDEX_APP_ID} --api-key ${RESELLER_ALGOLIA_INDEX_API_KEY}`;
 
 // List all indices to process - algolia indices list
 logger.info("Listing indices to be migrated");
@@ -65,7 +62,7 @@ const replicas = indices.reduce((replicas: string[], index) => {
 await $`echo ${replicas?.join(",\n")} > ${TMP_PATH}replica-list.txt`;
 
 const primaries = indices
-  .filter(({ name }) => !replicas.includes(name))
+  .filter(({ primary }) => !primary)
   .map(({ name }) => name);
 await $`echo ${primaries?.join(",\n")} > ${TMP_PATH}primaries-list.txt`;
 
@@ -93,28 +90,53 @@ const proceedAnswer = await question(
 
 if (proceedAnswer.toLowerCase() === "y") {
   logger.info("Starting migration");
-  // Foreach primary index
-  // -> export objects from DC Algolia index
-  // -> import objects into Amplience reseller index
-  // -> export rules from DC Algolia index
-  // -> import rules into Amplience reseller index
-  // -> export synonyms from DC Algolia index
-  // -> import synonyms into Amplience reseller index
-  // -> export settings from DC Algolia index
-  // -> import settings into Amplience reseller index
 
-  // Foreach replica index
-  // -> export rules from DC Algolia index
-  // -> import rules into Amplience reseller index
-  // -> export synonyms from DC Algolia index
-  // -> import synonyms into Amplience reseller index
-  // -> export settings from DC Algolia index
-  // -> import settings into Amplience reseller index
+  logger.info("Migrating primary indices");
+  for (const index of primaries) {
+    logger.info("Migrating primary index", { index });
+    logger.info(`Exporting index objects`, { index });
+    await $`algolia objects browse ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_objects_export.ndjson`;
+    logger.info(`Importing index objects`, { index });
+    await $`algolia objects import ${index} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${index}_objects_export.ndjson`;
+    logger.info(`Exporting index rules`, { index });
+    await $`algolia rules browse ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_rules_export.ndjson`;
+    logger.info(`Importing index rules`, { index });
+    await $`algolia rules import ${index} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${index}_rules_export.ndjson`;
+    logger.info(`Exporting index synonyms`, { index });
+    await $`algolia synonyms browse ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_synonyms_export.ndjson`;
+    logger.info(`Importing index synonyms`, { index });
+    await $`algolia synonyms import ${index} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${index}_synonyms_export.ndjson`;
+    logger.info(`Exporting index settings`, { index });
+    await $`algolia settings get ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_settings_export.ndjson`;
+    logger.info(`Importing index settings`, { index });
+    await $`algolia settings import ${index} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${index}_settings_export.ndjson`;
+    logger.info("Done migrating primary index", { index });
+  }
+
+  logger.info("Migrating replica indices");
+  for (const replica of replicas) {
+    logger.info("Migrating replica index", { replica });
+    await $`algolia rules browse ${replica} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${replica}_rules_export.ndjson`;
+    logger.info(`Importing index rules`, { replica });
+    await $`algolia rules import ${replica} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${replica}_rules_export.ndjson`;
+    logger.info(`Exporting index synonyms`, { replica });
+    await $`algolia synonyms browse ${replica} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${replica}_synonyms_export.ndjson`;
+    logger.info(`Importing index synonyms`, { replica });
+    await $`algolia synonyms import ${replica} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${replica}_synonyms_export.ndjson`;
+    logger.info(`Exporting index settings`, { replica });
+    await $`algolia settings get ${replica} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${replica}_settings_export.ndjson`;
+    logger.info(`Importing index settings`, { replica });
+    await $`algolia settings import ${replica} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${replica}_settings_export.ndjson`;
+    logger.info("Done migrating replica index", { replica });
+  }
+
   logger.info("Finished migration");
 }
 
 // Output results
 
 // Cleanup
+// TODO: we always need to run this especially when exceptions are thrown
 echo("Removing Algolia CLI profiles");
 await $`algolia profile remove ${DC_ALGOLIA_PROFILE_NAME}`;
+await $`algolia profile remove ${RESELLER_ALGOLIA_PROFILE_NAME}`;
