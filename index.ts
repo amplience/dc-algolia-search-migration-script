@@ -46,97 +46,97 @@ await $`algolia profile add --name ${DC_ALGOLIA_PROFILE_NAME} --app-id ${DC_ALGO
 logger.info("Creating Algolia CLI profile for Reseller");
 await $`algolia profile add --name ${RESELLER_ALGOLIA_PROFILE_NAME} --app-id ${RESELLER_ALGOLIA_INDEX_APP_ID} --api-key ${RESELLER_ALGOLIA_INDEX_API_KEY}`;
 
-// List all indices to process - algolia indices list
-logger.info("Listing indices to be migrated");
-const listIndicesOutput =
-  await $`algolia indices list -p ${DC_ALGOLIA_PROFILE_NAME} -o json | tee ${TMP_PATH}list-indices-response.json`;
+try {
+  logger.info("Listing indices to be migrated");
+  const listIndicesOutput =
+    await $`algolia indices list -p ${DC_ALGOLIA_PROFILE_NAME} -o json | tee ${TMP_PATH}list-indices-response.json`;
 
-const { items: indices } = listIndicesOutput.json<IndicesResponse>();
+  const { items: indices } = listIndicesOutput.json<IndicesResponse>();
 
-const replicas = indices.reduce((replicas: string[], index) => {
-  if (index?.replicas?.length > 0) {
-    return [...replicas, ...index?.replicas];
+  const replicas = indices.reduce((replicas: string[], index) => {
+    if (index?.replicas?.length > 0) {
+      return [...replicas, ...index?.replicas];
+    }
+    return replicas;
+  }, []);
+  await $`echo ${replicas?.join(",\n")} > ${TMP_PATH}replica-list.txt`;
+
+  const primaries = indices
+    .filter(({ primary }) => !primary)
+    .map(({ name }) => name);
+  await $`echo ${primaries?.join(",\n")} > ${TMP_PATH}primaries-list.txt`;
+
+  const hubNames = primaries.reduce((hubs: string[], index) => {
+    const hubName = index.split(".")[0];
+    if (!hubs.includes(hubName)) {
+      return [...hubs, hubName];
+    }
+    return hubs;
+  }, []);
+
+  logger.info(
+    `Found ${primaries.length} primary and ${
+      replicas.length
+    } replicas to migrate from the hubs: ${hubNames.join(", ")}`
+  );
+
+  logger.info(
+    `Please review the list of indices and replicas to be migrate: ${TMP_PATH}primaries-list.txt, ${TMP_PATH}replica-list.txt`
+  );
+
+  const proceedAnswer = await question(
+    "Would you like to proceed with the migration? (y/N)"
+  );
+
+  if (proceedAnswer.toLowerCase() === "y") {
+    logger.info("Starting migration");
+
+    logger.info("Migrating primary indices");
+    for (const index of primaries) {
+      logger.info("Migrating primary index", { index });
+      logger.info(`Exporting index objects`, { index });
+      await $`algolia objects browse ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_objects_export.ndjson`;
+      logger.info(`Importing index objects`, { index });
+      await $`algolia objects import ${index} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${index}_objects_export.ndjson`;
+      logger.info(`Exporting index rules`, { index });
+      await $`algolia rules browse ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_rules_export.ndjson`;
+      logger.info(`Importing index rules`, { index });
+      await $`algolia rules import ${index} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${index}_rules_export.ndjson`;
+      logger.info(`Exporting index synonyms`, { index });
+      await $`algolia synonyms browse ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_synonyms_export.ndjson`;
+      logger.info(`Importing index synonyms`, { index });
+      await $`algolia synonyms import ${index} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${index}_synonyms_export.ndjson`;
+      logger.info(`Exporting index settings`, { index });
+      await $`algolia settings get ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_settings_export.ndjson`;
+      logger.info(`Importing index settings`, { index });
+      await $`algolia settings import ${index} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${index}_settings_export.ndjson`;
+      logger.info("Done migrating primary index", { index });
+    }
+
+    logger.info("Migrating replica indices");
+    for (const replica of replicas) {
+      logger.info("Migrating replica index", { replica });
+      await $`algolia rules browse ${replica} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${replica}_rules_export.ndjson`;
+      logger.info(`Importing index rules`, { replica });
+      await $`algolia rules import ${replica} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${replica}_rules_export.ndjson`;
+      logger.info(`Exporting index synonyms`, { replica });
+      await $`algolia synonyms browse ${replica} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${replica}_synonyms_export.ndjson`;
+      logger.info(`Importing index synonyms`, { replica });
+      await $`algolia synonyms import ${replica} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${replica}_synonyms_export.ndjson`;
+      logger.info(`Exporting index settings`, { replica });
+      await $`algolia settings get ${replica} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${replica}_settings_export.ndjson`;
+      logger.info(`Importing index settings`, { replica });
+      await $`algolia settings import ${replica} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${replica}_settings_export.ndjson`;
+      logger.info("Done migrating replica index", { replica });
+    }
+
+    logger.info("Finished migration");
   }
-  return replicas;
-}, []);
-await $`echo ${replicas?.join(",\n")} > ${TMP_PATH}replica-list.txt`;
-
-const primaries = indices
-  .filter(({ primary }) => !primary)
-  .map(({ name }) => name);
-await $`echo ${primaries?.join(",\n")} > ${TMP_PATH}primaries-list.txt`;
-
-const hubNames = primaries.reduce((hubs: string[], index) => {
-  const hubName = index.split(".")[0];
-  if (!hubs.includes(hubName)) {
-    return [...hubs, hubName];
-  }
-  return hubs;
-}, []);
-
-logger.info(
-  `Found ${primaries.length} primary and ${
-    replicas.length
-  } replicas to migrate from the hubs: ${hubNames.join(", ")}`
-);
-
-logger.info(
-  `Please review the list of indices and replicas to be migrate: ${TMP_PATH}primaries-list.txt, ${TMP_PATH}replica-list.txt`
-);
-
-const proceedAnswer = await question(
-  "Would you like to proceed with the migration? (y/N)"
-);
-
-if (proceedAnswer.toLowerCase() === "y") {
-  logger.info("Starting migration");
-
-  logger.info("Migrating primary indices");
-  for (const index of primaries) {
-    logger.info("Migrating primary index", { index });
-    logger.info(`Exporting index objects`, { index });
-    await $`algolia objects browse ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_objects_export.ndjson`;
-    logger.info(`Importing index objects`, { index });
-    await $`algolia objects import ${index} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${index}_objects_export.ndjson`;
-    logger.info(`Exporting index rules`, { index });
-    await $`algolia rules browse ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_rules_export.ndjson`;
-    logger.info(`Importing index rules`, { index });
-    await $`algolia rules import ${index} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${index}_rules_export.ndjson`;
-    logger.info(`Exporting index synonyms`, { index });
-    await $`algolia synonyms browse ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_synonyms_export.ndjson`;
-    logger.info(`Importing index synonyms`, { index });
-    await $`algolia synonyms import ${index} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${index}_synonyms_export.ndjson`;
-    logger.info(`Exporting index settings`, { index });
-    await $`algolia settings get ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_settings_export.ndjson`;
-    logger.info(`Importing index settings`, { index });
-    await $`algolia settings import ${index} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${index}_settings_export.ndjson`;
-    logger.info("Done migrating primary index", { index });
-  }
-
-  logger.info("Migrating replica indices");
-  for (const replica of replicas) {
-    logger.info("Migrating replica index", { replica });
-    await $`algolia rules browse ${replica} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${replica}_rules_export.ndjson`;
-    logger.info(`Importing index rules`, { replica });
-    await $`algolia rules import ${replica} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${replica}_rules_export.ndjson`;
-    logger.info(`Exporting index synonyms`, { replica });
-    await $`algolia synonyms browse ${replica} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${replica}_synonyms_export.ndjson`;
-    logger.info(`Importing index synonyms`, { replica });
-    await $`algolia synonyms import ${replica} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${replica}_synonyms_export.ndjson`;
-    logger.info(`Exporting index settings`, { replica });
-    await $`algolia settings get ${replica} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${replica}_settings_export.ndjson`;
-    logger.info(`Importing index settings`, { replica });
-    await $`algolia settings import ${replica} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${replica}_settings_export.ndjson`;
-    logger.info("Done migrating replica index", { replica });
-  }
-
-  logger.info("Finished migration");
+} catch (error) {
+  logger.error("Migration failed", { error });
+} finally {
+  logger.info("Removing Algolia CLI profiles");
+  await $`algolia profile remove ${DC_ALGOLIA_PROFILE_NAME}`;
+  await $`algolia profile remove ${RESELLER_ALGOLIA_PROFILE_NAME}`;
+  logger.info("Migration script complete");
 }
-
-// Output results
-
-// Cleanup
-// TODO: we always need to run this especially when exceptions are thrown
-echo("Removing Algolia CLI profiles");
-await $`algolia profile remove ${DC_ALGOLIA_PROFILE_NAME}`;
-await $`algolia profile remove ${RESELLER_ALGOLIA_PROFILE_NAME}`;
