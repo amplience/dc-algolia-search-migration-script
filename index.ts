@@ -1,7 +1,10 @@
 import "dotenv/config";
-import { $, echo, kill, ProcessOutput, question } from "zx";
+import { $, question } from "zx";
 import createLogger from "./src/logger/logger.js";
-import { IndicesResponse } from "./src/types/indices.js";
+import { IndicesResponse } from "./src/indices/indices.types.js";
+import { extractHubNames } from "./src/indices/extract-hub-names.js";
+import { extractPrimaryIndexNames } from "./src/indices/extract-primary-index-names.js";
+import { extractReplicaIndexNames } from "./src/indices/extract-replica-index-names.js";
 
 const TIMESTAMP = new Date()
   .toISOString()
@@ -53,27 +56,13 @@ try {
 
   const { items: indices } = listIndicesOutput.json<IndicesResponse>();
 
-  const replicas = indices.reduce((replicas: string[], index) => {
-    if (index?.replicas?.length > 0) {
-      return [...replicas, ...index?.replicas];
-    }
-    return replicas;
-  }, []);
+  const replicas = extractReplicaIndexNames(indices);
   await $`echo ${replicas?.join(",\n")} > ${TMP_PATH}replica-list.txt`;
 
-  const primaries = indices
-    .filter(({ primary }) => !primary)
-    .map(({ name }) => name);
+  const primaries = extractPrimaryIndexNames(indices);
   await $`echo ${primaries?.join(",\n")} > ${TMP_PATH}primaries-list.txt`;
 
-  const hubNames = primaries.reduce((hubs: string[], index) => {
-    const hubName = index.split(".")[0];
-    if (!hubs.includes(hubName)) {
-      return [...hubs, hubName];
-    }
-    return hubs;
-  }, []);
-
+  const hubNames = extractHubNames(indices);
   logger.info(
     `Found ${primaries.length} primary and ${
       replicas.length
@@ -83,7 +72,6 @@ try {
   logger.info(
     `Please review the list of indices and replicas to be migrate: ${TMP_PATH}primaries-list.txt, ${TMP_PATH}replica-list.txt`
   );
-
   const proceedAnswer = await question(
     "Would you like to proceed with the migration? (y/N)"
   );
