@@ -35,3 +35,13 @@ Create a `.env` file using [./env.example](./env.example) as example.
 ```bash
 npm run start
 ```
+
+### Migration output
+
+For each migration logs and exported data are stored in a temp directory which can be located in `./.tmp/<YYYYMMDDhhmmss_timestamp>` e.g.
+
+## Running tests
+
+```bash
+npm run test
+```

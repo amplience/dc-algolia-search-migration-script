@@ -3,8 +3,8 @@ import { $, question } from "zx";
 import createLogger from "./src/logger/logger.js";
 import { IndicesResponse } from "./src/indices/indices.types.js";
 import { extractHubNames } from "./src/indices/extract-hub-names.js";
-import { extractPrimaryIndexNames } from "./src/indices/extract-primary-index-names.js";
 import { extractReplicaIndexNames } from "./src/indices/extract-replica-index-names.js";
+import { extractPrimaryIndexNames } from "./src/indices/extract-primary-index-names.js";
 
 const TIMESTAMP = new Date()
   .toISOString()
