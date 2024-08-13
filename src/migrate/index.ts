@@ -49,19 +49,19 @@ logger.info("Creating Algolia CLI profile for Reseller");
 await $`algolia profile add --name ${RESELLER_ALGOLIA_PROFILE_NAME} --app-id ${RESELLER_ALGOLIA_INDEX_APP_ID} --api-key ${RESELLER_ALGOLIA_INDEX_API_KEY}`;
 
 try {
-  logger.info("Listing indices to be migrated");
-  const listIndicesOutput =
+  logger.info("Listing indexes to be migrated");
+  const listIndexesOutput =
     await $`algolia indices list -p ${DC_ALGOLIA_PROFILE_NAME} -o json | tee ${TMP_PATH}source_indexes.json`;
 
-  const { items: indices } = listIndicesOutput.json<ListIndexResponse>();
+  const { items: indexes } = listIndexesOutput.json<ListIndexResponse>();
 
-  const replicas = extractReplicaIndexNames(indices);
-  await $`echo ${replicas?.join(",\n")} > ${TMP_PATH}replica-list.txt`;
+  const replicas = extractReplicaIndexNames(indexes);
+  await $`echo ${replicas?.join(",\n")} > ${TMP_PATH}replica-index-list.txt`;
 
-  const primaries = extractPrimaryIndexNames(indices);
-  await $`echo ${primaries?.join(",\n")} > ${TMP_PATH}primaries-list.txt`;
+  const primaries = extractPrimaryIndexNames(indexes);
+  await $`echo ${primaries?.join(",\n")} > ${TMP_PATH}primary-index-list.txt`;
 
-  const hubNames = extractHubNames(indices);
+  const hubNames = extractHubNames(indexes);
   logger.info(
     `Found ${primaries.length} primary and ${
       replicas.length
@@ -69,7 +69,7 @@ try {
   );
 
   logger.info(
-    `Please review the list of indices and replicas to be migrate: ${TMP_PATH}primaries-list.txt, ${TMP_PATH}replica-list.txt`
+    `Please review the list of indexes and replicas to be migrate: ${TMP_PATH}primary-index-list.txt, ${TMP_PATH}replica-index-list.txt`
   );
   const proceedAnswer = await question(
     "Would you like to proceed with the migration? (y/N)"
@@ -78,7 +78,7 @@ try {
   if (proceedAnswer.toLowerCase() === "y") {
     logger.info("Starting migration");
 
-    logger.info("Migrating primary indices");
+    logger.info("Migrating primary indexes");
     for (const index of primaries) {
       logger.info(`Migrating index objects`, { index });
       await $`algolia objects browse ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_objects_export.ndjson`;
@@ -95,7 +95,7 @@ try {
       logger.info("Done migrating primary index", { index });
     }
 
-    logger.info("Migrating replica indices");
+    logger.info("Migrating replica indexes");
     for (const replica of replicas) {
       logger.info(`Migrating replica rules`, { replica });
       await $`algolia rules browse ${replica} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${replica}_rules_export.ndjson`;
