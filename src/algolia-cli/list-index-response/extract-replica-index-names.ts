@@ -1,4 +1,4 @@
-import { Index } from "./indices.types.js";
+import { Index } from "../types/index.types.js";
 
 export const extractReplicaIndexNames = (indices: Index[]) => {
   return indices.reduce((replicas: string[], index) => {

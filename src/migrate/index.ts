@@ -1,17 +1,17 @@
 import "dotenv/config";
 import { $, question } from "zx";
-import createLogger from "./src/logger/logger.js";
-import { IndicesResponse } from "./src/indices/indices.types.js";
-import { extractHubNames } from "./src/indices/extract-hub-names.js";
-import { extractReplicaIndexNames } from "./src/indices/extract-replica-index-names.js";
-import { extractPrimaryIndexNames } from "./src/indices/extract-primary-index-names.js";
+import createLogger from "../logger/logger.js";
+import { ListIndexResponse } from "../algolia-cli/types/list-index-response.types.js";
+import { extractReplicaIndexNames } from "../algolia-cli/list-index-response/extract-replica-index-names.js";
+import { extractPrimaryIndexNames } from "../algolia-cli/list-index-response/extract-primary-index-names.js";
+import { extractHubNames } from "../algolia-cli/list-index-response/extract-hub-names.js";
 
 const TIMESTAMP = new Date()
   .toISOString()
   .replace(/[^0-9]/g, "")
   .slice(0, -3);
 
-const TMP_PATH = `./.tmp/${TIMESTAMP}/`;
+const TMP_PATH = `./.tmp/migrate/${TIMESTAMP}/`;
 const logger = createLogger(TMP_PATH);
 
 const {
@@ -51,9 +51,9 @@ await $`algolia profile add --name ${RESELLER_ALGOLIA_PROFILE_NAME} --app-id ${R
 try {
   logger.info("Listing indices to be migrated");
   const listIndicesOutput =
-    await $`algolia indices list -p ${DC_ALGOLIA_PROFILE_NAME} -o json | tee ${TMP_PATH}list-indices-response.json`;
+    await $`algolia indices list -p ${DC_ALGOLIA_PROFILE_NAME} -o json | tee ${TMP_PATH}source_indexes.json`;
 
-  const { items: indices } = listIndicesOutput.json<IndicesResponse>();
+  const { items: indices } = listIndicesOutput.json<ListIndexResponse>();
 
   const replicas = extractReplicaIndexNames(indices);
   await $`echo ${replicas?.join(",\n")} > ${TMP_PATH}replica-list.txt`;
