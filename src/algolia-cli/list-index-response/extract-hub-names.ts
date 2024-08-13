@@ -1,4 +1,4 @@
-import { Index } from "../types/list-index-response.types.js";
+import { Index } from "../types/index.types.js";
 
 export const extractHubNames = (indices: Index[]) => {
   return indices.reduce((hubNames: string[], { name }) => {
