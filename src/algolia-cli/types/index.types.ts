@@ -8,7 +8,3 @@ export type Index = {
   primary: string;
   replicas: string[];
 };
-
-export type IndicesResponse = {
-  items: Index[];
-};

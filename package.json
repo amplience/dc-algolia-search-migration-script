@@ -5,17 +5,20 @@
   "main": "index.ts",
   "type": "module",
   "scripts": {
-    "start": "tsx index.ts",
+    "migrate": "tsx ./src/migrate/index.ts",
+    "validate": "tsx ./src/validate/index.ts",
     "test": "find . -name \"*.test.ts\" -exec node --import tsx --test {} ';'"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "deep-equal": "^2.2.3",
     "dotenv": "^16.4.5",
     "winston": "^3.13.1",
     "zx": "^8.1.4"
   },
   "devDependencies": {
+    "@types/deep-equal": "^1.0.4",
     "tsx": "^4.16.5",
     "typescript": "^5.5.4"
   }
