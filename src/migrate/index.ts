@@ -80,8 +80,9 @@ try {
 
     logger.info("Migrating primary indexes");
     for (const index of primaries) {
-      logger.info(`Migrating index objects`, { index });
+      logger.info(`Exporting index objects`, { index });
       await $`algolia objects browse ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_objects_export.ndjson`;
+      logger.info(`Importing index objects`, { index });
       await $`algolia objects import ${index} -p ${RESELLER_ALGOLIA_PROFILE_NAME} -F ${TMP_PATH}${index}_objects_export.ndjson`;
       logger.info(`Migrating index rules`, { index });
       await $`algolia rules browse ${index} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${index}_rules_export.ndjson`;
