@@ -1,16 +1,22 @@
 # dc-algolia-search-migration-script
 
-Script for migrating Dynamic Content search indexes to external reseller accounts.
+Script for migrating Amplience Dynamic Content search indexes to target Algolia accounts.
+
+For the purposes of this readme:
+
+- (FROM) Amplience Dynamic Content Search refers to Amplience's OEM of Algolia for content search use cases
+- (TO) Target Algolia refers to either Amplience Advanced Content Search or direct accounts with Algolia.
 
 ## Prerequisites
 
 - [Algolia CLI](https://www.algolia.com/doc/tools/cli/get-started/overview/#install-the-algolia-cli)
-- Reseller Algolia API details
-  - App Id
-  - Write API Key
-- Dynamic Content search index API details
+
+- Amplience Dynamic Content search index API details
   - App Id
   - API key - `listIndexes`, `browse`, `settings`
+- Target Algolia API details
+  - App Id
+  - Write API Key
 
 ## Installation
 
@@ -23,14 +29,32 @@ npm ci
 
 Create a `.env` file using [./env.example](./env.example) as example.
 
-| Env                            | Description                                                 | Notes                                              |
-| ------------------------------ | ----------------------------------------------------------- | -------------------------------------------------- |
-| DC_ALGOLIA_INDEX_APP_ID        | App ID used to access DC search indexes                     |                                                    |
-| DC_ALGOLIA_INDEX_API_KEY       | Api key with used to access DC search indexes               | Required ACL's `listIndexes`, `browse`, `settings` |
-| RESELLER_ALGOLIA_INDEX_APP_ID  | App ID of the reseller Algolia app to migrate too           |                                                    |
-| RESELLER_ALGOLIA_INDEX_API_KEY | "Write API Key" for the reseller app with write permissions |                                                    |
+| Env                          | Description                                                    | Notes                                              |
+| ---------------------------- | -------------------------------------------------------------- | -------------------------------------------------- |
+| DC_ALGOLIA_INDEX_APP_ID      | (FROM) App ID used to access DC search indexes                 |                                                    |
+| DC_ALGOLIA_INDEX_API_KEY     | (FROM) Api key with used to access DC search indexes           | Required ACL's `listIndexes`, `browse`, `settings` |
+| TARGET_ALGOLIA_INDEX_APP_ID  | (TO) App ID of the target Algolia app to migrate too           |                                                    |
+| TARGET_ALGOLIA_INDEX_API_KEY | (TO) "Write API Key" for the target app with write permissions |                                                    |
 
 ## Migrating indexes
+
+> Note: When performing a migration it is best to consult with the Amplience services team for a recommended playbook and support.
+
+### What does the script migrate
+
+The script will migrate the following.
+
+- For each primary index we migrate:
+  - Objects
+  - Rules
+  - Synonyms
+  - Settings
+- For each replica index we migrate:
+  - Rules
+  - Synonyms
+  - Settings
+
+### Starting a migration
 
 ```bash
 npm run migrate
@@ -56,7 +80,7 @@ The migration script will output an number of migration files that can be used t
 npm run validate
 ```
 
-### Migration output
+### Validation output
 
 The validation script will output an number of migration files that can be used to review, validate, and debug a migration. The following validation files can be found in the tmp location `./tmp/validate/{YYYYMMDDhhmmss}`:
 
@@ -76,3 +100,10 @@ The validation script will output an number of migration files that can be used 
 ```bash
 npm run test
 ```
+
+## Consideration for running a migration
+
+- Amplience Dynamic Content Search keys (FROM) can be setup by Amplience for use
+  - These keys can be scoped to specific indexes across multiple Dynamic Content Hubs
+- Target Algolia write keys are the responsibility of the customer to setup
+- This project has been tested but is highly dependent on the Algolia platform, APIs and CLI. As such this is a functional script but customer support is expected from Algolia.
