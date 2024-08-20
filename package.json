@@ -7,6 +7,7 @@
   "scripts": {
     "migrate": "tsx ./src/migrate/index.ts",
     "validate": "tsx ./src/validate/index.ts",
+    "build": "tsc --outDir .dist",
     "test": "find . -name \"*.test.ts\" -exec node --import tsx --test {} ';'"
   },
   "author": "",
