@@ -16,12 +16,12 @@ const logger = createLogger(TMP_PATH);
 const {
   DC_ALGOLIA_INDEX_APP_ID,
   DC_ALGOLIA_INDEX_API_KEY,
-  RESELLER_ALGOLIA_INDEX_APP_ID,
-  RESELLER_ALGOLIA_INDEX_API_KEY,
+  TARGET_ALGOLIA_INDEX_APP_ID,
+  TARGET_ALGOLIA_INDEX_API_KEY,
 } = process.env;
 
 const DC_ALGOLIA_PROFILE_NAME = "dc_algolia_profile";
-const RESELLER_ALGOLIA_PROFILE_NAME = "reseller_algolia_profile";
+const TARGET_ALGOLIA_PROFILE_NAME = "target_algolia_profile";
 
 logger.info("Checking for Algolia CLI");
 try {
@@ -36,16 +36,16 @@ logger.info("Checking profiles information is available");
 if (
   !DC_ALGOLIA_INDEX_APP_ID ||
   !DC_ALGOLIA_INDEX_API_KEY ||
-  !RESELLER_ALGOLIA_INDEX_APP_ID ||
-  !RESELLER_ALGOLIA_INDEX_API_KEY
+  !TARGET_ALGOLIA_INDEX_APP_ID ||
+  !TARGET_ALGOLIA_INDEX_API_KEY
 ) {
   throw new Error("Required profile data missing");
 }
 
 logger.info("Creating Algolia CLI profile for DC Algolia");
 await $`algolia profile add --name ${DC_ALGOLIA_PROFILE_NAME} --app-id ${DC_ALGOLIA_INDEX_APP_ID} --api-key ${DC_ALGOLIA_INDEX_API_KEY}`;
-logger.info("Creating Algolia CLI profile for Reseller");
-await $`algolia profile add --name ${RESELLER_ALGOLIA_PROFILE_NAME} --app-id ${RESELLER_ALGOLIA_INDEX_APP_ID} --api-key ${RESELLER_ALGOLIA_INDEX_API_KEY}`;
+logger.info("Creating Algolia CLI profile for Target Algolia account");
+await $`algolia profile add --name ${TARGET_ALGOLIA_PROFILE_NAME} --app-id ${TARGET_ALGOLIA_INDEX_APP_ID} --api-key ${TARGET_ALGOLIA_INDEX_API_KEY}`;
 
 try {
   logger.info("Listing source indexes");
@@ -56,7 +56,7 @@ try {
 
   logger.info("Listing target indexes");
   const targetIndexesResponse =
-    await $`algolia indices list -p ${RESELLER_ALGOLIA_PROFILE_NAME} -o json | tee ${TMP_PATH}target_indexes.json`;
+    await $`algolia indices list -p ${TARGET_ALGOLIA_PROFILE_NAME} -o json | tee ${TMP_PATH}target_indexes.json`;
 
   const { items: targetIndexes } =
     targetIndexesResponse.json<ListIndexResponse>();
@@ -83,7 +83,7 @@ try {
 
     logger.info("Checking rules match", { indexName });
     await $`algolia rules browse ${indexName} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${indexName}_source_rules_export.ndjson`;
-    await $`algolia rules browse ${indexName} -p ${RESELLER_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${indexName}_target_rules_export.ndjson`;
+    await $`algolia rules browse ${indexName} -p ${TARGET_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${indexName}_target_rules_export.ndjson`;
     const rulesDiffOutput =
       await $`diff ${TMP_PATH}${indexName}_source_rules_export.ndjson ${TMP_PATH}${indexName}_target_rules_export.ndjson`.nothrow();
 
@@ -96,7 +96,7 @@ try {
 
     logger.info("Checking synonyms match", { indexName });
     await $`algolia synonyms browse ${indexName} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${indexName}_source_synonyms_export.ndjson`;
-    await $`algolia synonyms browse ${indexName} -p ${RESELLER_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${indexName}_target_synonyms_export.ndjson`;
+    await $`algolia synonyms browse ${indexName} -p ${TARGET_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${indexName}_target_synonyms_export.ndjson`;
     const synonymsDiffOutput =
       await $`diff ${TMP_PATH}${indexName}_source_synonyms_export.ndjson ${TMP_PATH}${indexName}_target_synonyms_export.ndjson`.nothrow();
 
@@ -109,7 +109,7 @@ try {
 
     logger.info("Checking settings match", { indexName });
     await $`algolia settings get ${indexName} -p ${DC_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${indexName}_source_settings_export.ndjson`;
-    await $`algolia settings get ${indexName} -p ${RESELLER_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${indexName}_target_settings_export.ndjson`;
+    await $`algolia settings get ${indexName} -p ${TARGET_ALGOLIA_PROFILE_NAME} > ${TMP_PATH}${indexName}_target_settings_export.ndjson`;
     const settingsDiff =
       await $`diff ${TMP_PATH}${indexName}_source_settings_export.ndjson ${TMP_PATH}${indexName}_target_settings_export.ndjson`.nothrow();
 
@@ -125,6 +125,6 @@ try {
 } finally {
   logger.info("Cleaning up Algolia CLI profiles");
   await $`algolia profile remove ${DC_ALGOLIA_PROFILE_NAME}`;
-  await $`algolia profile remove ${RESELLER_ALGOLIA_PROFILE_NAME}`;
+  await $`algolia profile remove ${TARGET_ALGOLIA_PROFILE_NAME}`;
   logger.info("Validation complete");
 }
