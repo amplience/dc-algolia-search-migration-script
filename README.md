@@ -49,7 +49,7 @@ The script will migrate the following.
   - Rules
   - Synonyms
   - Settings
-- For each replica index we migrated:
+- For each replica index we migrate:
   - Rules
   - Synonyms
   - Settings
@@ -104,6 +104,6 @@ npm run test
 ## Consideration for running a migration
 
 - Amplience Dynamic Content Search keys (FROM) can be setup by Amplience for use
-  - These keys can be scoped to specific indexes accross multiple Dynamic Content Hubs
-- Target Algolia write keys are the responsibility of the customer to setup.
-- This project has been tested but is highly dependant on the Algolia platform, APIs and CLI. As such this is a functional script but customer support is expected from Algolia.
+  - These keys can be scoped to specific indexes across multiple Dynamic Content Hubs
+- Target Algolia write keys are the responsibility of the customer to setup
+- This project has been tested but is highly dependent on the Algolia platform, APIs and CLI. As such this is a functional script but customer support is expected from Algolia.
