@@ -9,7 +9,9 @@ For the purposes of this readme:
 
 ## Prerequisites
 
-- [Algolia CLI](https://www.algolia.com/doc/tools/cli/get-started/overview/#install-the-algolia-cli)
+- [Algolia CLI v1.6.11](https://www.algolia.com/doc/tools/cli/get-started/overview/#install-the-algolia-cli)
+
+  - The script was tested with
 
 - Amplience Dynamic Content search index API details
   - App Id
@@ -49,10 +51,12 @@ The script will migrate the following.
   - Rules
   - Synonyms
   - Settings
-- For each replica index we migrate:
+- For each replica (**standard replicas only**) index we migrate:
   - Rules
   - Synonyms
   - Settings
+
+The script **does not** support Virtual Replicas
 
 ### Starting a migration
 
