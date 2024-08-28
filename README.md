@@ -1,6 +1,6 @@
 # dc-algolia-search-migration-script
 
-Script for migrating Amplience Dynamic Content search indexes to target Algolia accounts.
+A script for automating the migration of Amplience Dynamic Content search indexes to target Algolia accounts using the [Algolia CLI](https://www.algolia.com/doc/tools/cli/get-started/overview/).
 
 For the purposes of this readme:
 
@@ -9,10 +9,8 @@ For the purposes of this readme:
 
 ## Prerequisites
 
-- [Algolia CLI v1.6.11](https://www.algolia.com/doc/tools/cli/get-started/overview/#install-the-algolia-cli)
-
-  - The script was tested with
-
+- Bash
+- [Algolia CLI (recommended v1.6.11)](https://www.algolia.com/doc/tools/cli/get-started/overview/#install-the-algolia-cli)
 - Amplience Dynamic Content search index API details
   - App Id
   - API key - `listIndexes`, `browse`, `settings`
