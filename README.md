@@ -109,3 +109,13 @@ npm run test
   - These keys can be scoped to specific indexes across multiple Dynamic Content Hubs
 - Target Algolia write keys are the responsibility of the customer to setup
 - This project has been tested but is highly dependent on the Algolia platform, APIs and CLI. As such this is a functional script but customer support is expected from Algolia.
+
+## Warranty & Support
+
+This is an _open source_ wrapper script of the Algolia CLI commands needed to migrate multiple indexes.
+
+The intended audience for this script is Amplience customers actively using Amplience Content Search and moving to Amplience Advanced Content Search.
+
+For any questions for the migration if you have an Amplience services package, you should reach out to your Amplience services representative to guide you through the process.
+
+Please refer to the Amplience and Algolia docs for further troubleshooting.
