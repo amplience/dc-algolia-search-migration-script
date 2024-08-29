@@ -1,6 +1,6 @@
 {
   "name": "dc-algolia-search-migration-script",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Script for migrating Amplience Dynamic Content search indexes",
   "main": "index.ts",
   "type": "module",
